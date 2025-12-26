@@ -11,10 +11,7 @@
   --bg: linear-gradient(180deg, rgba(6,16,23,1) 0%, rgba(6,34,26,1) 100%);
 }
 
-@theme inline {
-  --color-background: var(--volt-900);
-  --color-foreground: var(--volt-100);
-}
+/* Removed unknown @theme inline block for compatibility */
 
 @media (prefers-color-scheme: dark) {
   :root {

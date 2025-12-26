@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,30 +15,37 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SendWhich — VoltRoom",
-  description: "Create temporary collaboration rooms with P2P file sharing and privacy-first design.",
-  icons: {
-    icon: [
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-48x48.png', sizes: '48x48', type: 'image/png' },
-      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
-    ],
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
+  description:
+    "Create temporary collaboration rooms with P2P file sharing and privacy-first design.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased text-white min-h-screen`}
       >
-        {children}
+        {/* Background */}
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <Image
+            src="/bg.png"
+            alt="Cosmic Nebula Background"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover brightness-75 contrast-125"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-indigo-950/20 to-purple-950/40" />
+        </div>
+
+        {/* Foreground content */}
+        <main className="relative z-10 min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   );
