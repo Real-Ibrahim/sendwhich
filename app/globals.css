@@ -1,26 +1,130 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --volt-900: #061017; /* deep charcoal (logo background) */
+  --volt-800: #062521; /* dark teal */
+  --volt-700: #063e2e; /* rich green shadow */
+  --volt-100: #E6FFF6; /* light mint text */
+  --volt-300: #9DF7DB; /* soft mint */
+  --volt-accent: #00E676; /* neon green */
+
+  --bg: linear-gradient(180deg, rgba(6,16,23,1) 0%, rgba(6,34,26,1) 100%);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--volt-900);
+  --color-foreground: var(--volt-100);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --volt-900: #02060a;
   }
 }
 
+/* Utility variables mapped to tailwind-friendly names */
+:root {
+  --volt-900: var(--volt-900);
+  --volt-100: var(--volt-100);
+  --volt-accent: var(--volt-accent);
+}
+
+/* Background glow and stripe for subtle animated accents */
+.bg-glow {
+  position: absolute;
+  width: 34%;
+  height: 34%;
+  background: radial-gradient(closest-side, rgba(0,230,118,0.03), transparent 20%);
+  filter: blur(28px);
+  transform: rotate(18deg);
+  animation: float 12s ease-in-out infinite;
+}
+
+.bg-stripe {
+  position: absolute;
+  width: 22%;
+  height: 22%;
+  background: linear-gradient(45deg, rgba(0,230,118,0.02), transparent 50%);
+  filter: blur(18px);
+  transform: rotate(-6deg);
+  animation: drift 14s linear infinite;
+}
+
+@keyframes float {
+  0%,100%{ transform: translateY(0) rotate(18deg) }
+  50%{ transform: translateY(-8px) rotate(18deg) }
+}
+
+@keyframes drift {
+  0%{ transform: translateX(0) rotate(-6deg) }
+  50%{ transform: translateX(18px) rotate(-6deg) }
+  100%{ transform: translateX(0) rotate(-6deg) }
+}
+
+/* Panel background and hero helpers */
+.panel-bg { background: rgba(2,6,23,0.45); border: 1px solid rgba(255,255,255,0.04); }
+.icon-bg { background: rgba(255,255,255,0.02); }
+/* Reduce hero shadow to avoid large halo that washes the page */
+.hero-title { text-shadow: 0 2px 8px rgba(2,6,23,0.45); }
+.hero-content { position: relative; z-index: 12; }
+
+/* Intro overlay styles */
+.intro-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 50; }
+.intro-overlay > .absolute { opacity: 1; }
+.intro-overlay .logo { transform: scale(1.06); filter: blur(6px); opacity: 0; animation: logoIn 900ms cubic-bezier(.2,.9,.2,1) 250ms forwards; }
+.intro-overlay .tagline { opacity: 0; transform: translateY(8px); animation: taglineIn 600ms ease 850ms forwards; }
+
+.streaks .streak { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, rgba(0,230,118,0.18), transparent); opacity: 0.75; filter: blur(6px); }
+.streaks .streak-1 { top: 22%; left: -30%; width: 80%; transform: rotate(-12deg); animation: streakMove 2400ms linear infinite; }
+.streaks .streak-2 { bottom: 18%; right: -30%; width: 70%; transform: rotate(-6deg); animation: streakMoveAlt 3000ms linear infinite; }
+
+@keyframes logoIn { to { transform: scale(1); filter: blur(0); opacity: 1; } }
+@keyframes taglineIn { to { transform: translateY(0); opacity: 1; } }
+@keyframes streakMove { from { transform: translateX(0) rotate(-12deg); } to { transform: translateX(60%) rotate(-12deg); } }
+@keyframes streakMoveAlt { from { transform: translateX(0) rotate(-6deg); } to { transform: translateX(-60%) rotate(-6deg); } }
+
+/* Fade out helper for overlay when removed */
+.intro-overlay.fade-out { opacity: 0; transition: opacity 400ms ease; pointer-events: none; }
+
+.skip-button { background: transparent; border: none; cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-overlay .logo,
+  .intro-overlay .tagline,
+  .streaks .streak {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* Ensure strong dark background fallback */
+body { background-color: var(--volt-900) !important; }
+
+/* Map CSS variables into utility classes for convenience */
+.text-volt-100 { color: var(--volt-100); }
+.text-volt-200 { color: rgba(233,248,255,0.9); }
+.text-volt-300 { color: var(--volt-300); }
+.text-volt-400 { color: rgba(166,240,255,0.6); }
+.text-volt-900 { color: var(--volt-900); }
+.bg-volt-900 { background: var(--volt-900); }
+.bg-volt-800 { background: var(--volt-800); }
+.bg-volt-gradient { background: var(--bg); }
+.bg-volt-accent { background: var(--volt-accent); }
+.bg-volt-accent-90 { background: rgba(0,230,118,0.9); }
+
+.btn-accent { background: var(--volt-accent); color: var(--volt-900); }
+
+/* Small micro-interactions */
+.card-hover { transition: transform .18s ease, box-shadow .18s ease; }
+.card-hover:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(2,6,23,0.5); }
+
+:focus-visible { outline: 2px solid rgba(0,230,118,0.18); outline-offset: 3px; }
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--volt-900);
+  color: var(--volt-100);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
 }

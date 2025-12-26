@@ -34,3 +34,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## Design notes (SendWhich — VoltRoom)
+
+- Implemented a modern, privacy-focused landing page with a dark navy palette and electric-cyan accents.
+- Key files modified: `app/page.tsx`, `app/globals.css`, `app/layout.tsx`.
+- Features: Temporary rooms, P2P file sharing, live chat, no server file storage, privacy-focused trust section.
+- To preview locally: `npm run dev` then open `http://localhost:3000`.
+- Accessibility: inline SVGs are marked `aria-hidden`, keyboard focus styles added, and `details` used for a simple mobile menu.
