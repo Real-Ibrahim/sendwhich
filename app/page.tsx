@@ -391,32 +391,36 @@ function MainContent() {
 
 
 function AfterFeatures() {
-  const reviews = [
-    {
-      name: "Alex Rivera",
-      role: "Lead Designer at Velo",
-      comment: "The easiest way to send large assets to clients without worrying about security leaks. The UI is just gorgeous.",
-      avatar: "AR"
-    },
-    {
-      name: "Sarah Chen",
-      role: "Security Researcher",
-      comment: "Finally, a sharing platform that takes AES-256 seriously. The private rooms feature is a game changer for our audits.",
-      avatar: "SC"
-    },
-    {
-      name: "James Wilson",
-      role: "Freelance Videographer",
-      comment: "Blazing fast upload speeds. I can move 4K raw footage effortlessly. Best decision for my workflow this year.",
-      avatar: "JW"
-    },
-    {
-      name: "Elena Rodriguez",
-      role: "Product Manager",
-      comment: "Real-time collaboration in private rooms has cut our feedback loop in half. It's more than just file sharing.",
-      avatar: "ER"
-    }
-  ];
+ const reviews = [
+  {
+    name: "Alex Rivera",
+    role: "Lead Designer at Velo",
+    comment: "The easiest way to send large assets to clients without worrying about security leaks. The UI is just gorgeous.",
+    avatar: "AR",
+    rating: 5 // Add this
+  },
+  {
+    name: "Sarah Chen",
+    role: "Security Researcher",
+    comment: "Finally, a sharing platform that takes AES-256 seriously. The private rooms feature is a game changer for our audits.",
+    avatar: "SC",
+    rating: 5 // Add this
+  },
+  {
+    name: "James Wilson",
+    role: "Freelance Videographer",
+    comment: "Blazing fast upload speeds. I can move 4K raw footage effortlessly. Best decision for my workflow this year.",
+    avatar: "JW",
+    rating: 4 // Add this
+  },
+  {
+    name: "Elena Rodriguez",
+    role: "Product Manager",
+    comment: "Real-time collaboration in private rooms has cut our feedback loop in half. It's more than just file sharing.",
+    avatar: "ER",
+    rating: 5 // Add this
+  }
+];
 
   return (
     <>
