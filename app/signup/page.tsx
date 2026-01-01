@@ -4,11 +4,14 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import Image from 'next/image'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signup')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
 
   const [formData, setFormData] = useState({
     username: '',
@@ -52,17 +55,70 @@ export default function AuthPage() {
     return Object.keys(newErrors).length === 0
   }
 
- const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (validateForm()) {
-      setIsLoading(true)
-      // Simulate API call (replace with real auth)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsLoading(false)
-      // router.push('/dashboard')
-      console.log('Success!')
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+  
+    setIsLoading(true);
+    setErrors({});
+  
+    try {
+      if (mode === 'signup') {
+        // 1. Sign up
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: { username: formData.username }, // optional: store username in user metadata
+          },
+        });
+  
+        if (authError) {
+          console.error('Sign up error:', authError);
+          setErrors({ submit: authError.message });
+          setIsLoading(false);
+          return;
+        }
+  
+        // 2. Check if email confirmation is required
+        if (authData.user && !authData.session) {
+          // Email confirmation is enabled — user needs to verify email
+          alert('Account created! Please check your email to confirm your account.');
+          setIsLoading(false);
+          // Optional: redirect to a "check your email" page
+          // router.push('/check-email');
+          return;
+        }
+  
+        // 3. If session exists → auto-login succeeded (rare if confirmation is on)
+        if (authData.session) {
+          router.push('/dashboard');
+        }
+      } else {
+        // Sign in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+  
+        if (signInError) {
+          console.error('Sign in error:', signInError);
+          setErrors({ submit: signInError.message });
+          setIsLoading(false);
+          return;
+        }
+  
+        // Success - session created
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      setErrors({ submit: error.message || 'An unexpected error occurred' });
+    } finally {
+      // ALWAYS stop loading, even on error
+      setIsLoading(false);
     }
-  }
+  };
 
   const toggleVariants = {
     initial: { opacity: 0, x: -20 },
@@ -83,15 +139,17 @@ export default function AuthPage() {
 
 return (
     <div className="min-h-screen relative bg-black text-white">
-      {/* Background */}
-      <div className="absolute inset-0 -z-10">
-        <img
+{/* Background Image - always visible */}
+      <div className="fixed inset-0 z-0">
+        <Image
           src="/bg.png"
-          alt="Cosmic Background"
-          className="w-full h-full object-cover brightness-[0.45] contrast-[1.15]"
-          
+          alt="Cosmic Nebula Background"
+          fill
+          className="object-cover brightness-[0.45] contrast-[1.15]"
+          priority
+          quality={90}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-indigo-950/40 to-purple-950/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-indigo-950/30 to-purple-950/40" />
       </div>
 
       <div className="relative z-10 flex items-center justify-center min-h-screen px-6 py-12">
@@ -226,6 +284,9 @@ return (
               )}
 
               {/* Submit Button */}
+              {errors.submit && (
+                <p className="text-sm text-red-400 mt-2">{errors.submit}</p>
+              )}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
