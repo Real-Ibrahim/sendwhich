@@ -26,10 +26,7 @@
   --bg: linear-gradient(180deg, rgba(6,16,23,1) 0%, rgba(6,34,26,1) 100%);
 }
 
-@theme inline {
-  --color-background: var(--volt-900);
-  --color-foreground: var(--volt-100);
-}
+/* Removed unknown @theme inline block for compatibility */
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -75,6 +72,8 @@
   50%{ transform: translateX(18px) rotate(-6deg) }
   100%{ transform: translateX(0) rotate(-6deg) }
 }
+
+
 
 /* Panel background and hero helpers */
 .panel-bg { background: rgba(2,6,23,0.45); border: 1px solid rgba(255,255,255,0.04); }

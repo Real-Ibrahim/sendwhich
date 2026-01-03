@@ -94,12 +94,12 @@ function Navbar() {
 
         {/* CTAs */}
         <div className="flex items-center gap-4">
-          <button id="login-btn" className="hidden sm:block text-sm font-medium hover:text-cyan-400 transition-colors">
+          <a href="/signup" id="login-btn" className="hidden sm:block text-sm font-medium hover:text-cyan-400 transition-colors">
             Log in
-          </button>
-          <button className="px-6 py-2.5 bg-white text-black rounded-full text-sm font-bold hover:bg-cyan-400 transition-all">
+          </a>
+          <a href="/signup" className="px-6 py-2.5 bg-white text-black rounded-full text-sm font-bold hover:bg-cyan-400 transition-all">
             Sign up
-          </button>
+          </a>
         </div>
       </div>
     </motion.nav>
@@ -109,7 +109,7 @@ function Navbar() {
 
 // ── Cinematic Intro Component ───────────────────────────────
 function CinematicIntro() {
-  const title = "SendWhich"
+  const title = "SendWhich?"
 
   const letterVariants: any = {
     hidden: { y: 80, opacity: 0 },
@@ -200,11 +200,7 @@ function MainContent() {
             transition={{ duration: 1, delay: 0.6 }}
             className="px-[30%] py-5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full text-lg font-semibold shadow-lg shadow-cyan-500/50 transition-all duration-300 hover:scale-[1.05] hover:shadow-xl hover:shadow-cyan-400/50"
             onClick={() => {
-              const element = document.getElementById("login-btn");
-              if (!element) return;
-              const yOffset = -120; // adjust for fixed navbar height
-              const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-              window.scrollTo({ top: y, behavior: "smooth" });
+              window.location.href = '/signup';
             }}
           >
             Get Started
@@ -391,13 +387,13 @@ function MainContent() {
 
 
 function AfterFeatures() {
- const reviews = [
+  const reviews = [
   {
     name: "Alex Rivera",
     role: "Lead Designer at Velo",
     comment: "The easiest way to send large assets to clients without worrying about security leaks. The UI is just gorgeous.",
     avatar: "AR",
-    rating: 5 // Add this
+    rating: 4 // Add this
   },
   {
     name: "Sarah Chen",
@@ -421,7 +417,6 @@ function AfterFeatures() {
     rating: 5 // Add this
   }
 ];
-
   return (
     <>
       {/* Effortless Sharing Section */}
@@ -592,8 +587,3 @@ function AfterFeatures() {
     </>
   )
 }
-
-
-
-
-

@@ -20,7 +20,7 @@ export default function GradientBackground() {
 
       {/* Subtle moving light blobs */}
       <motion.div
-        className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-600/10 to-cyan-500/10 rounded-full blur-3xl"
+        className="absolute top-1/4 left-1/4 w-150 h-150 bg-linear-to-br from-purple-600/10 to-cyan-500/10 rounded-full blur-3xl"
         animate={{
           x: ['-10%', '10%', '-10%'],
           y: ['-15%', '15%', '-15%'],
@@ -34,7 +34,7 @@ export default function GradientBackground() {
       />
 
       <motion.div
-        className="absolute bottom-1/4 right-1/4 w-[800px] h-[800px] bg-gradient-to-tl from-blue-600/10 to-pink-600/5 rounded-full blur-3xl"
+        className="absolute bottom-1/4 right-1/4 w-200 h-200 bg-linear-to-tl from-blue-600/10 to-pink-600/5 rounded-full blur-3xl"
         animate={{
           x: ['10%', '-10%', '10%'],
           y: ['10%', '-10%', '10%'],
