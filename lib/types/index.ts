@@ -43,6 +43,7 @@ export interface FileLog {
   file_type: string
   file_size: number
   sent_at: string
+  file_path?: string | null
 }
 
 export interface RoomParticipant {

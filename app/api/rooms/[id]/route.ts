@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyPassword } from '@/lib/utils/password'
 
 export async function GET(
@@ -8,9 +9,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-
-    const { data: room, error } = await supabase
+    
+    // Use admin client to bypass RLS for room lookup (for P2P - anyone with link can view)
+    // This allows users to join rooms even if they're not participants yet
+    const adminSupabase = createAdminClient()
+    const { data: room, error } = await adminSupabase
       .from('rooms')
       .select('*')
       .eq('id', id)
@@ -20,8 +23,25 @@ export async function GET(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
-    // Get participants
-    const { data: participants } = await supabase
+    // Check if room has expired
+    const now = new Date()
+    if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
+      // Update room status to expired
+      await adminSupabase
+        .from('rooms')
+        .update({ status: 'expired' })
+        .eq('id', id)
+      
+      room.status = 'expired'
+    }
+
+    // Prevent access to expired rooms
+    if (room.status === 'expired') {
+      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
+    }
+
+    // Get participants (use admin client to bypass RLS)
+    const { data: participants } = await adminSupabase
       .from('room_participants')
       .select(`
         *,
@@ -52,8 +72,9 @@ export async function POST(
     const body = await req.json()
     const { password, action } = body
 
-    // Get room
-    const { data: room, error: roomError } = await supabase
+    // Use admin client to bypass RLS for room lookup (for P2P - anyone with link can view)
+    const adminSupabase = createAdminClient()
+    const { data: room, error: roomError } = await adminSupabase
       .from('rooms')
       .select('*')
       .eq('id', id)
@@ -61,6 +82,23 @@ export async function POST(
 
     if (roomError || !room) {
       return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+    }
+
+    // Check if room has expired
+    const now = new Date()
+    if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
+      // Update room status to expired
+      await adminSupabase
+        .from('rooms')
+        .update({ status: 'expired' })
+        .eq('id', id)
+      
+      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
+    }
+
+    // Prevent access to expired rooms
+    if (room.status === 'expired') {
+      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
     }
 
     if (action === 'join') {
@@ -75,8 +113,8 @@ export async function POST(
         }
       }
 
-      // Check if already a participant
-      const { data: existing } = await supabase
+      // Check if already a participant (use admin client)
+      const { data: existing } = await adminSupabase
         .from('room_participants')
         .select('*')
         .eq('room_id', id)
@@ -85,8 +123,8 @@ export async function POST(
         .single()
 
       if (!existing) {
-        // Add participant
-        await supabase.from('room_participants').insert({
+        // Add participant (use admin client to bypass RLS)
+        await adminSupabase.from('room_participants').insert({
           room_id: id,
           user_id: user.id,
           role: room.owner_id === user.id ? 'owner' : 'member',
@@ -110,7 +148,8 @@ export async function POST(
         updates.password_hash = await hashPassword(newPassword)
       }
 
-      const { error: updateError } = await supabase
+      // Use admin client for update (owner can update their rooms)
+      const { error: updateError } = await adminSupabase
         .from('rooms')
         .update(updates)
         .eq('id', id)
@@ -127,6 +166,10 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+
+
+
 
 
 

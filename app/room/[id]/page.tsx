@@ -13,6 +13,9 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { Room, Message, FileLog } from '@/lib/types'
 import { formatFileSize, getFileType } from '@/lib/utils/room'
 import { createClient } from '@/lib/supabase/client'
+import RoomCreationModal from '@/components/RoomCreationModal'
+import JoinRoomModal from '@/components/JoinRoomModal'
+import { AnimatePresence } from 'framer-motion'
 
 export default function RoomPage() {
   const params = useParams()
@@ -26,8 +29,12 @@ export default function RoomPage() {
   const [messageInput, setMessageInput] = useState('')
   const [passwordInput, setPasswordInput] = useState('')
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showExpiredModal, setShowExpiredModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showJoinModal, setShowJoinModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
+  const [isExpired, setIsExpired] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -86,14 +93,35 @@ export default function RoomPage() {
           router.push('/dashboard')
           return
         }
+        if (response.status === 410) {
+          // Room expired
+          setIsExpired(true)
+          setShowExpiredModal(true)
+          setLoading(false)
+          return
+        }
         throw new Error('Failed to fetch room')
       }
       const data = await response.json()
-      setRoom(data.room)
       
-      // Check if password is required
-      if (data.room.is_locked && !data.room.password_verified) {
-        setShowPasswordModal(true)
+      // Check if room is expired based on status
+      if (data.room.status === 'expired') {
+        setIsExpired(true)
+        setShowExpiredModal(true)
+        setLoading(false)
+        return
+      }
+      
+      setRoom(data.room)
+      setIsExpired(false)
+      
+      // Check if password is required (only if user is not the owner)
+      if (data.room.is_locked && data.room.owner_id !== user?.id) {
+        // Check if user is already a participant
+        const isParticipant = data.participants?.some((p: any) => p.user_id === user?.id)
+        if (!isParticipant) {
+          setShowPasswordModal(true)
+        }
       }
     } catch (error) {
       console.error('Error fetching room:', error)
@@ -191,24 +219,30 @@ export default function RoomPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Log file in database
     try {
-      await fetch('/api/file-logs', {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('room_id', roomId)
+
+      const response = await fetch('/api/files/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          room_id: roomId,
-          file_name: file.name,
-          file_size: file.size,
-        }),
+        body: formData,
       })
 
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to upload file')
+      }
+
       fetchFileLogs()
-      // Here you would implement WebRTC file transfer
-      // For now, we're just logging the file
-      alert('File transfer initiated. WebRTC implementation would go here.')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error)
+      alert(error.message || 'Failed to upload file')
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -216,6 +250,35 @@ export default function RoomPage() {
     const link = `${window.location.origin}/room/${roomId}`
     navigator.clipboard.writeText(link)
     alert('Room link copied to clipboard!')
+  }
+
+  const handleFileDownload = async (file: FileLog) => {
+    try {
+      const response = await fetch(`/api/files/download?file_id=${file.id}`)
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to download file')
+      }
+
+      // Get the file blob
+      const blob = await response.blob()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.file_name
+      document.body.appendChild(a)
+      a.click()
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error: any) {
+      console.error('Error downloading file:', error)
+      alert(error.message || 'Failed to download file')
+    }
   }
 
   const getFileIcon = (fileType: string) => {
@@ -240,6 +303,108 @@ export default function RoomPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
           <p className="mt-4 text-gray-400">Loading room...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (!room && !isExpired) {
+    if (!loading) {
+      return null
+    }
+  }
+
+  // Show expired modal if room is expired
+  if (isExpired || showExpiredModal) {
+    return (
+      <div className="relative min-h-screen bg-black text-white flex flex-col">
+        {/* Background */}
+        <div className="fixed inset-0 z-0">
+          <Image
+            src="/bg.png"
+            alt="Background"
+            fill
+            className="object-cover brightness-[0.45] contrast-[1.15]"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-indigo-950/30 to-purple-950/40" />
+        </div>
+
+        {/* Expired Room Modal */}
+        <AnimatePresence>
+          {showExpiredModal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                onClick={() => router.push('/dashboard')}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="fixed inset-0 flex items-center justify-center z-50 p-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="bg-black/90 backdrop-blur-xl border border-red-900/50 rounded-2xl p-8 max-w-md w-full">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                      <X size={32} className="text-red-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-red-400">Room Expired</h2>
+                    <p className="text-gray-300">
+                      This room has expired and is no longer accessible.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        setShowExpiredModal(false)
+                        setShowCreateModal(true)
+                      }}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all font-medium"
+                    >
+                      Create New Room
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowExpiredModal(false)
+                        setShowJoinModal(true)
+                      }}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors font-medium"
+                    >
+                      Join Another Room
+                    </button>
+                    <button
+                      onClick={() => router.push('/dashboard')}
+                      className="w-full px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      Go to Dashboard
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Modals */}
+        <RoomCreationModal 
+          isOpen={showCreateModal} 
+          onClose={() => {
+            setShowCreateModal(false)
+            router.push('/dashboard')
+          }} 
+        />
+        <JoinRoomModal 
+          isOpen={showJoinModal} 
+          onClose={() => {
+            setShowJoinModal(false)
+            router.push('/dashboard')
+          }} 
+        />
       </div>
     )
   }
@@ -405,7 +570,17 @@ export default function RoomPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{file.file_name}</p>
                       <p className="text-xs text-gray-400">{formatFileSize(file.file_size)}</p>
+                      {file.sender_id !== user?.id && (
+                        <p className="text-xs text-cyan-400 mt-1">From another participant</p>
+                      )}
                     </div>
+                    <button
+                      onClick={() => handleFileDownload(file)}
+                      className="p-2 rounded-lg hover:bg-cyan-900/30 transition-colors group"
+                      title="Download file"
+                    >
+                      <Download size={18} className="text-cyan-400 group-hover:text-cyan-300" />
+                    </button>
                   </div>
                 ))
               )}
@@ -415,34 +590,56 @@ export default function RoomPage() {
       </div>
 
       {/* Password Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-black/90 backdrop-blur-xl border border-cyan-900/50 rounded-2xl p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">Room Password Required</h2>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Enter room password"
-              className="w-full px-4 py-2 bg-black/60 border border-cyan-900/50 rounded-lg focus:outline-none focus:border-cyan-500 mb-4"
+      <AnimatePresence>
+        {showPasswordModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+              onClick={() => router.push('/dashboard')}
             />
-            <div className="flex gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleJoinRoom}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all"
-              >
-                Join Room
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-black/90 backdrop-blur-xl border border-cyan-900/50 rounded-2xl p-8 max-w-md w-full mx-4">
+                <h2 className="text-2xl font-bold mb-4">Room Password Required</h2>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Enter room password"
+                  className="w-full px-4 py-2 bg-black/60 border border-cyan-900/50 rounded-lg focus:outline-none focus:border-cyan-500 mb-4"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleJoinRoom()
+                    }
+                  }}
+                />
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleJoinRoom}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all"
+                  >
+                    Join Room
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
