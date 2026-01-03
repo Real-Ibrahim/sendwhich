@@ -59,3 +59,4 @@ The regular RLS policy only allows viewing rooms if you're already a participant
 - Make sure the key is complete (it's a long string)
 
 
+

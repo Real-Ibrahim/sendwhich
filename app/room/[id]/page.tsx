@@ -21,7 +21,7 @@ export default function RoomPage() {
   const params = useParams()
   const router = useRouter()
   const roomId = params.id as string
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [room, setRoom] = useState<Room | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [fileLogs, setFileLogs] = useState<FileLog[]>([])
@@ -39,7 +39,10 @@ export default function RoomPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!user && !loading) {
+    if (authLoading) return
+
+    if (!user) {
+      setLoading(false)
       router.push('/signup')
       return
     }
@@ -79,13 +82,31 @@ export default function RoomPage() {
       messagesSubscription.unsubscribe()
       filesSubscription.unsubscribe()
     }
-  }, [roomId, user])
+  }, [roomId, user, authLoading])
+
+  useEffect(() => {
+    if (!room?.expires_at || isExpired) return
+
+    const checkExpiry = () => {
+      const expiresAt = new Date(room.expires_at as string).getTime()
+      if (!Number.isNaN(expiresAt) && Date.now() >= expiresAt) {
+        setIsExpired(true)
+        setShowExpiredModal(true)
+      }
+    }
+
+    checkExpiry()
+    const intervalId = setInterval(checkExpiry, 15000)
+    return () => clearInterval(intervalId)
+  }, [room, isExpired])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const fetchRoom = async () => {
+    if (!user) return
+
     try {
       const response = await fetch(`/api/rooms/${roomId}`)
       if (!response.ok) {
