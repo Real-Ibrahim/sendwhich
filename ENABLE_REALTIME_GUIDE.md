@@ -127,3 +127,10 @@ Copy this, paste in SQL Editor, click Run. That's it! 🎉
 
 
 
+
+
+
+
+
+
+

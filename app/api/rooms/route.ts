@@ -91,11 +91,37 @@ export async function GET(req: NextRequest) {
       new Map(allRooms.map(room => [room.id, room])).values()
     )
 
-    return NextResponse.json({ rooms: uniqueRooms }, { status: 200 })
+    // Check and update expired rooms
+    const now = new Date()
+    const updatedRooms = await Promise.all(
+      uniqueRooms.map(async (room) => {
+        if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
+          // Update room status to expired
+          await supabase
+            .from('rooms')
+            .update({ status: 'expired' })
+            .eq('id', room.id)
+          
+          return { ...room, status: 'expired' }
+        }
+        return room
+      })
+    )
+
+    // Filter by status after updating
+    const filteredRooms = status === 'active' 
+      ? updatedRooms.filter(r => r.status === 'active')
+      : updatedRooms.filter(r => r.status === status)
+
+    return NextResponse.json({ rooms: filteredRooms }, { status: 200 })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+
+
+
 
 
 
