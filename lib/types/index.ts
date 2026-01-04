@@ -7,7 +7,7 @@ export interface Room {
   max_participants: number
   expires_at: string | null
   created_at: string
-  status: 'active' | 'expired'
+  status: 'active' | 'expired' | 'deleted'
 }
 
 export interface User {

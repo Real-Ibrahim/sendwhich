@@ -39,7 +39,7 @@ export interface Database {
           max_participants: number
           expires_at: string | null
           created_at: string
-          status: 'active' | 'expired'
+          status: 'active' | 'expired' | 'deleted'
         }
         Insert: {
           id?: string
@@ -50,7 +50,7 @@ export interface Database {
           max_participants?: number
           expires_at?: string | null
           created_at?: string
-          status?: 'active' | 'expired'
+          status?: 'active' | 'expired' | 'deleted'
         }
         Update: {
           id?: string
@@ -61,7 +61,7 @@ export interface Database {
           max_participants?: number
           expires_at?: string | null
           created_at?: string
-          status?: 'active' | 'expired'
+          status?: 'active' | 'expired' | 'deleted'
         }
       }
       room_participants: {

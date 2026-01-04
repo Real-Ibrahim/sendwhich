@@ -38,16 +38,21 @@ export async function GET(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
-    // Check if room has expired and delete it
+    // Check if room has expired and mark it as expired
     const now = new Date()
-    if (room.expires_at && new Date(room.expires_at) < now) {
-      // Delete expired room
+    if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
+      // Mark room as expired (don't delete from database)
       await adminSupabase
         .from('rooms')
-        .delete()
+        .update({ status: 'expired' })
         .eq('id', id)
       
-      return NextResponse.json({ error: 'This room has expired and been deleted' }, { status: 410 })
+      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
+    }
+
+    // Prevent access to expired or deleted rooms
+    if (room.status === 'expired' || room.status === 'deleted') {
+      return NextResponse.json({ error: 'This room is no longer available' }, { status: 410 })
     }
 
     // Get participants (use admin client to bypass RLS)
@@ -112,16 +117,21 @@ export async function POST(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
-    // Check if room has expired and delete it
+    // Check if room has expired and mark it as expired
     const now = new Date()
-    if (room.expires_at && new Date(room.expires_at) < now) {
-      // Delete expired room
+    if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
+      // Mark room as expired (don't delete from database)
       await adminSupabase
         .from('rooms')
-        .delete()
+        .update({ status: 'expired' })
         .eq('id', id)
       
-      return NextResponse.json({ error: 'This room has expired and been deleted' }, { status: 410 })
+      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
+    }
+
+    // Prevent access to expired or deleted rooms
+    if (room.status === 'expired' || room.status === 'deleted') {
+      return NextResponse.json({ error: 'This room is no longer available' }, { status: 410 })
     }
 
     if (action === 'join') {
@@ -238,14 +248,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Only the room owner can delete this room' }, { status: 403 })
     }
 
-    // Delete the room (cascade will delete related records)
-    const { error: deleteError } = await adminSupabase
+    // Mark room as deleted (don't delete from database)
+    const { error: updateError } = await adminSupabase
       .from('rooms')
-      .delete()
+      .update({ status: 'deleted' })
       .eq('id', id)
 
-    if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    if (updateError) {
+      // Provide helpful error message for constraint violation
+      if (updateError.message?.includes('rooms_status_check')) {
+        return NextResponse.json({ 
+          error: 'Database constraint error: The "deleted" status is not allowed. Please run the migration script in Supabase SQL Editor. See ADD_DELETED_STATUS.sql or scripts/fix-constraint-now.sql for the SQL to run.',
+          details: updateError.message
+        }, { status: 500 })
+      }
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, message: 'Room deleted successfully' }, { status: 200 })

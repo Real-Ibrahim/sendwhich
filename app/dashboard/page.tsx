@@ -708,7 +708,20 @@ export default function Dashboard() {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{activity.file_name}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium truncate">{activity.file_name}</p>
+                            {activity.rooms?.status && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                activity.rooms.status === 'active' 
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                  : activity.rooms.status === 'expired'
+                                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              }`}>
+                                {activity.rooms.status.charAt(0).toUpperCase() + activity.rooms.status.slice(1)}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-400">
                             {formatFileSize(activity.file_size)} • {new Date(activity.sent_at).toLocaleString()}
                           </p>
@@ -718,12 +731,19 @@ export default function Dashboard() {
                           </p>
                         </div>
 
-                        <button 
-                          onClick={() => router.push(`/room/${activity.room_id}`)}
-                          className="p-2 rounded-lg hover:bg-white/10"
-                        >
-                          <ChevronRight size={18} className="text-gray-400" />
-                        </button>
+                        {activity.rooms?.status === 'active' ? (
+                          <button 
+                            onClick={() => router.push(`/room/${activity.room_id}`)}
+                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                            title="View Room"
+                          >
+                            <ChevronRight size={18} className="text-gray-400" />
+                          </button>
+                        ) : (
+                          <div className="p-2 rounded-lg opacity-50 cursor-not-allowed" title={`Room is ${activity.rooms?.status || 'unavailable'}`}>
+                            <ChevronRight size={18} className="text-gray-600" />
+                          </div>
+                        )}
                       </motion.div>
                     ))}
                   </div>

@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
       new Map(allRooms.map(room => [room.id, room])).values()
     )
 
-    // Check and delete expired rooms
+    // Check and mark expired rooms
     const now = new Date()
     let adminSupabase
     try {
@@ -101,27 +101,26 @@ export async function GET(req: NextRequest) {
       console.error('Failed to create admin client:', adminError.message)
     }
 
-    const roomsToKeep: typeof uniqueRooms = []
-    
-    for (const room of uniqueRooms) {
-      if (room.expires_at && new Date(room.expires_at) < now) {
-        // Delete expired room
-        if (adminSupabase) {
-          await adminSupabase
-            .from('rooms')
-            .delete()
-            .eq('id', room.id)
+    const updatedRooms = await Promise.all(
+      uniqueRooms.map(async (room) => {
+        if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
+          // Mark room as expired (don't delete from database)
+          if (adminSupabase) {
+            await adminSupabase
+              .from('rooms')
+              .update({ status: 'expired' })
+              .eq('id', room.id)
+          }
+          return { ...room, status: 'expired' as const }
         }
-        // Skip expired rooms from the response
-        continue
-      }
-      roomsToKeep.push(room)
-    }
+        return room
+      })
+    )
 
-    // Filter by status after deleting expired rooms
+    // Filter by status (only show active rooms by default, exclude expired and deleted)
     const filteredRooms = status === 'active' 
-      ? roomsToKeep.filter(r => r.status === 'active')
-      : roomsToKeep.filter(r => r.status === status)
+      ? updatedRooms.filter(r => r.status === 'active')
+      : updatedRooms.filter(r => r.status === status)
 
     return NextResponse.json({ rooms: filteredRooms }, { status: 200 })
   } catch (error: any) {
