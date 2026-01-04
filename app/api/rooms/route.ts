@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { hashPassword } from '@/lib/utils/password'
 import { generateRoomId } from '@/lib/utils/room'
 
@@ -91,27 +92,36 @@ export async function GET(req: NextRequest) {
       new Map(allRooms.map(room => [room.id, room])).values()
     )
 
-    // Check and update expired rooms
+    // Check and delete expired rooms
     const now = new Date()
-    const updatedRooms = await Promise.all(
-      uniqueRooms.map(async (room) => {
-        if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
-          // Update room status to expired
-          await supabase
-            .from('rooms')
-            .update({ status: 'expired' })
-            .eq('id', room.id)
-          
-          return { ...room, status: 'expired' }
-        }
-        return room
-      })
-    )
+    let adminSupabase
+    try {
+      adminSupabase = createAdminClient()
+    } catch (adminError: any) {
+      console.error('Failed to create admin client:', adminError.message)
+    }
 
-    // Filter by status after updating
+    const roomsToKeep: typeof uniqueRooms = []
+    
+    for (const room of uniqueRooms) {
+      if (room.expires_at && new Date(room.expires_at) < now) {
+        // Delete expired room
+        if (adminSupabase) {
+          await adminSupabase
+            .from('rooms')
+            .delete()
+            .eq('id', room.id)
+        }
+        // Skip expired rooms from the response
+        continue
+      }
+      roomsToKeep.push(room)
+    }
+
+    // Filter by status after deleting expired rooms
     const filteredRooms = status === 'active' 
-      ? updatedRooms.filter(r => r.status === 'active')
-      : updatedRooms.filter(r => r.status === status)
+      ? roomsToKeep.filter(r => r.status === 'active')
+      : roomsToKeep.filter(r => r.status === status)
 
     return NextResponse.json({ rooms: filteredRooms }, { status: 200 })
   } catch (error: any) {

@@ -28,6 +28,15 @@ export default function RoomCreationModal({ isOpen, onClose }: RoomCreationModal
     setError('')
 
     try {
+      // Convert datetime-local to ISO string (UTC) for proper timezone handling
+      let expiresAt = null
+      if (formData.expires_at) {
+        // datetime-local gives "YYYY-MM-DDTHH:mm" in local time
+        // Create a Date object (interprets as local time), then convert to ISO (UTC)
+        const date = new Date(formData.expires_at)
+        expiresAt = date.toISOString()
+      }
+
       const response = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,7 +44,7 @@ export default function RoomCreationModal({ isOpen, onClose }: RoomCreationModal
           name: formData.name || null,
           password: formData.is_locked ? formData.password : null,
           max_participants: formData.max_participants,
-          expires_at: formData.expires_at || null,
+          expires_at: expiresAt,
         }),
       })
 

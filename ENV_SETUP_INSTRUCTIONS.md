@@ -19,6 +19,7 @@ Then paste this content and replace with your values:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
 ### Option 2: Create via VS Code / Your Editor
@@ -32,6 +33,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
 5. **Replace the placeholder values** with your actual Supabase credentials
@@ -43,6 +45,7 @@ After creating `.env.local`, fill it with your Supabase credentials:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXItcHJvamVjdC1pZCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQ1NzI5NjAwLCJleHAiOjE5NjEzMDU2MDB9.your-key-here
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdXItcHJvamVjdC1pZCIsInJvbGUiOiJzZXJ2aWNlX3JvbGUiLCJpYXQiOjE2NDU3Mjk2MDAsImV4cCI6MTk2MTMwNTYwMH0.your-service-role-key-here
 ```
 
 ### How to Get Your Credentials:
@@ -50,6 +53,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 1. Go to **Supabase Dashboard** → **Settings (⚙️)** → **API**
 2. Copy **"Project URL"** → This is your `NEXT_PUBLIC_SUPABASE_URL`
 3. Copy **"anon public"** key → This is your `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Copy **"service_role"** key (click the eye icon to reveal) → This is your `SUPABASE_SERVICE_ROLE_KEY`
+   - ⚠️ **WARNING**: This key bypasses all security. Keep it secret and never use in client-side code!
 
 ## ⚠️ Important Notes
 

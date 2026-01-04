@@ -121,17 +121,20 @@ export default function RoomPage() {
           setLoading(false)
           return
         }
-        throw new Error('Failed to fetch room')
-      }
-      const data = await response.json()
-      
-      // Check if room is expired based on status
-      if (data.room.status === 'expired') {
-        setIsExpired(true)
-        setShowExpiredModal(true)
-        setLoading(false)
+        // Try to get error message from response
+        let errorMessage = 'Failed to fetch room'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If response is not JSON, use default message
+        }
+        console.error('Error fetching room:', errorMessage)
+        // Redirect to dashboard on error
+        router.push('/dashboard')
         return
       }
+      const data = await response.json()
       
       setRoom(data.room)
       setIsExpired(false)
@@ -144,8 +147,14 @@ export default function RoomPage() {
           setShowPasswordModal(true)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching room:', error)
+      // Handle network errors or other fetch failures
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.error('Network error: Unable to connect to server')
+      }
+      // Redirect to dashboard on error
+      router.push('/dashboard')
     } finally {
       setLoading(false)
     }
@@ -368,12 +377,12 @@ export default function RoomPage() {
                 className="fixed inset-0 flex items-center justify-center z-50 p-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-black/90 backdrop-blur-xl border border-red-900/50 rounded-2xl p-8 max-w-md w-full">
+                <div className="bg-black/90 backdrop-blur-xl border border-cyan-900/50 rounded-2xl p-8 max-w-md w-full">
                   <div className="text-center mb-6">
-                    <div className="w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mx-auto mb-4">
-                      <X size={32} className="text-red-400" />
+                    <div className="w-16 h-16 rounded-full bg-cyan-900/20 flex items-center justify-center mx-auto mb-4">
+                      <X size={32} className="text-cyan-400" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-red-400">Room Expired</h2>
+                    <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Room Expired</h2>
                     <p className="text-gray-300">
                       This room has expired and is no longer accessible.
                     </p>

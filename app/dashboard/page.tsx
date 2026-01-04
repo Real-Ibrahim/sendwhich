@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, Send, ShieldCheck, History, User, LogOut, 
   Menu, X, Plus, Search, Bell, ChevronRight, Upload, Download, Users, 
-  HardDrive, Lock, ExternalLink
+  HardDrive, Lock, ExternalLink, Trash2
 } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import RoomCreationModal from '@/components/RoomCreationModal'
@@ -24,6 +24,8 @@ export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [roomToDelete, setRoomToDelete] = useState<string | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [activities, setActivities] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
@@ -141,6 +143,47 @@ export default function Dashboard() {
   const handleLogout = async () => {
     setShowLogoutConfirm(false)
     await signOut()
+  }
+
+  const handleDeleteRoomClick = (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+    setRoomToDelete(roomId)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteRoomConfirm = async () => {
+    if (!roomToDelete) return
+
+    try {
+      const response = await fetch(`/api/rooms/${roomToDelete}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        // If room not found, it might have been deleted already, just refresh
+        if (response.status === 404) {
+          fetchRooms()
+          setShowDeleteConfirm(false)
+          setRoomToDelete(null)
+          return
+        }
+        throw new Error(data.error || 'Failed to delete room')
+      }
+
+      // Refresh rooms list
+      fetchRooms()
+      setShowDeleteConfirm(false)
+      setRoomToDelete(null)
+    } catch (error: any) {
+      console.error('Error deleting room:', error)
+      // Only show alert if it's not a "not found" error (room already deleted)
+      if (!error.message?.includes('not found')) {
+        alert(error.message || 'Failed to delete room')
+      }
+      setShowDeleteConfirm(false)
+      setRoomToDelete(null)
+    }
   }
 
   const navigationItems = [
@@ -596,12 +639,23 @@ export default function Dashboard() {
                         key={room.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-black/40 border border-cyan-900/30 rounded-xl p-6 hover:border-cyan-500/50 transition-all cursor-pointer"
+                        className="bg-black/40 border border-cyan-900/30 rounded-xl p-6 hover:border-cyan-500/50 transition-all cursor-pointer relative"
                         onClick={() => router.push(`/room/${room.id}`)}
                       >
                         <div className="flex items-start justify-between mb-4">
-                          <h3 className="font-bold text-lg">{room.name || 'Unnamed Room'}</h3>
-                          {room.is_locked && <Lock size={18} className="text-yellow-400" />}
+                          <h3 className="font-bold text-lg flex-1">{room.name || 'Unnamed Room'}</h3>
+                          <div className="flex items-center gap-2">
+                            {room.is_locked && <Lock size={18} className="text-yellow-400" />}
+                            {room.owner_id === user?.id && (
+                              <button
+                                onClick={(e) => handleDeleteRoomClick(room.id, e)}
+                                className="p-1.5 rounded-lg hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-colors"
+                                title="Delete room"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2 text-sm text-gray-400">
                           <p>Max Participants: {room.max_participants}</p>
@@ -610,7 +664,13 @@ export default function Dashboard() {
                           )}
                           <p className="text-xs">Created: {new Date(room.created_at).toLocaleDateString()}</p>
                         </div>
-                        <button className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all text-sm font-medium flex items-center justify-center gap-2">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/room/${room.id}`)
+                          }}
+                          className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all text-sm font-medium flex items-center justify-center gap-2"
+                        >
                           Open Room
                           <ExternalLink size={16} />
                         </button>
@@ -776,6 +836,53 @@ export default function Dashboard() {
       {/* Modals */}
       <RoomCreationModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
       <JoinRoomModal isOpen={showJoinModal} onClose={() => setShowJoinModal(false)} />
+
+      {/* Delete Room Confirmation */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                setRoomToDelete(null)
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-black/90 backdrop-blur-xl border border-cyan-900/50 rounded-2xl p-8 max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Delete Room</h2>
+                <p className="text-gray-300 mb-6">Are you sure you want to delete this room? This action cannot be undone.</p>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false)
+                      setRoomToDelete(null)
+                    }}
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteRoomConfirm}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Logout Confirmation */}
       <AnimatePresence>

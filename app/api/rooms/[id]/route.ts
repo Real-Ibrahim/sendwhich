@@ -12,7 +12,22 @@ export async function GET(
     
     // Use admin client to bypass RLS for room lookup (for P2P - anyone with link can view)
     // This allows users to join rooms even if they're not participants yet
-    const adminSupabase = createAdminClient()
+    let adminSupabase
+    try {
+      adminSupabase = createAdminClient()
+    } catch (adminError: any) {
+      console.error('Failed to create admin client:', adminError.message)
+      // Provide helpful error message for missing service role key
+      if (adminError.message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+        return NextResponse.json({ 
+          error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Please add it to your .env.local file. See SERVICE_ROLE_KEY_SETUP.md for instructions.' 
+        }, { status: 500 })
+      }
+      return NextResponse.json({ 
+        error: 'Server configuration error. Please check your environment variables.' 
+      }, { status: 500 })
+    }
+
     const { data: room, error } = await adminSupabase
       .from('rooms')
       .select('*')
@@ -23,21 +38,16 @@ export async function GET(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
-    // Check if room has expired
+    // Check if room has expired and delete it
     const now = new Date()
-    if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
-      // Update room status to expired
+    if (room.expires_at && new Date(room.expires_at) < now) {
+      // Delete expired room
       await adminSupabase
         .from('rooms')
-        .update({ status: 'expired' })
+        .delete()
         .eq('id', id)
       
-      room.status = 'expired'
-    }
-
-    // Prevent access to expired rooms
-    if (room.status === 'expired') {
-      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
+      return NextResponse.json({ error: 'This room has expired and been deleted' }, { status: 410 })
     }
 
     // Get participants (use admin client to bypass RLS)
@@ -52,7 +62,10 @@ export async function GET(
 
     return NextResponse.json({ room, participants: participants || [] }, { status: 200 })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error in GET /api/rooms/[id]:', error)
+    return NextResponse.json({ 
+      error: error.message || 'An unexpected error occurred while fetching the room' 
+    }, { status: 500 })
   }
 }
 
@@ -73,7 +86,22 @@ export async function POST(
     const { password, action } = body
 
     // Use admin client to bypass RLS for room lookup (for P2P - anyone with link can view)
-    const adminSupabase = createAdminClient()
+    let adminSupabase
+    try {
+      adminSupabase = createAdminClient()
+    } catch (adminError: any) {
+      console.error('Failed to create admin client:', adminError.message)
+      // Provide helpful error message for missing service role key
+      if (adminError.message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+        return NextResponse.json({ 
+          error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Please add it to your .env.local file. See SERVICE_ROLE_KEY_SETUP.md for instructions.' 
+        }, { status: 500 })
+      }
+      return NextResponse.json({ 
+        error: 'Server configuration error. Please check your environment variables.' 
+      }, { status: 500 })
+    }
+
     const { data: room, error: roomError } = await adminSupabase
       .from('rooms')
       .select('*')
@@ -84,21 +112,16 @@ export async function POST(
       return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
-    // Check if room has expired
+    // Check if room has expired and delete it
     const now = new Date()
-    if (room.expires_at && new Date(room.expires_at) < now && room.status === 'active') {
-      // Update room status to expired
+    if (room.expires_at && new Date(room.expires_at) < now) {
+      // Delete expired room
       await adminSupabase
         .from('rooms')
-        .update({ status: 'expired' })
+        .delete()
         .eq('id', id)
       
-      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
-    }
-
-    // Prevent access to expired rooms
-    if (room.status === 'expired') {
-      return NextResponse.json({ error: 'This room has expired' }, { status: 410 })
+      return NextResponse.json({ error: 'This room has expired and been deleted' }, { status: 410 })
     }
 
     if (action === 'join') {
@@ -163,7 +186,74 @@ export async function POST(
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error in POST /api/rooms/[id]:', error)
+    return NextResponse.json({ 
+      error: error.message || 'An unexpected error occurred' 
+    }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Use admin client to bypass RLS for room lookup
+    let adminSupabase
+    try {
+      adminSupabase = createAdminClient()
+    } catch (adminError: any) {
+      console.error('Failed to create admin client:', adminError.message)
+      if (adminError.message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+        return NextResponse.json({ 
+          error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Please add it to your .env.local file. See SERVICE_ROLE_KEY_SETUP.md for instructions.' 
+        }, { status: 500 })
+      }
+      return NextResponse.json({ 
+        error: 'Server configuration error. Please check your environment variables.' 
+      }, { status: 500 })
+    }
+
+    // Get room to check ownership
+    const { data: room, error: roomError } = await adminSupabase
+      .from('rooms')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (roomError || !room) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 })
+    }
+
+    // Only owner can delete the room
+    if (room.owner_id !== user.id) {
+      return NextResponse.json({ error: 'Only the room owner can delete this room' }, { status: 403 })
+    }
+
+    // Delete the room (cascade will delete related records)
+    const { error: deleteError } = await adminSupabase
+      .from('rooms')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, message: 'Room deleted successfully' }, { status: 200 })
+  } catch (error: any) {
+    console.error('Error in DELETE /api/rooms/[id]:', error)
+    return NextResponse.json({ 
+      error: error.message || 'An unexpected error occurred' 
+    }, { status: 500 })
   }
 }
 
