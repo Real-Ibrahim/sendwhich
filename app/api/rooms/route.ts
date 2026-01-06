@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { hashPassword } from '@/lib/utils/password'
 import { generateRoomId } from '@/lib/utils/room'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,7 +95,7 @@ export async function GET(req: NextRequest) {
 
     // Check and mark expired rooms
     const now = new Date()
-    let adminSupabase
+    let adminSupabase: SupabaseClient<any, "public", "public", any, any>
     try {
       adminSupabase = createAdminClient()
     } catch (adminError: any) {
@@ -127,11 +128,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-
-
-
-
-
-
-
-

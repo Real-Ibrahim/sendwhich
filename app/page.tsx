@@ -448,26 +448,32 @@ function AfterFeatures() {
   className="relative max-w-3xl mx-auto" 
 >
   {/* Main Dashboard Preview Container */}
-  <div className="relative z-10">
-    <div className="bg-linear-to-r from-cyan-900/30 to-purple-900/30 rounded-3xl p-6 backdrop-blur-md border border-cyan-500/20">
-      <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-700 flex items-center justify-center">
-        <span className="text-xl text-cyan-400">Dashboard Preview</span>
-      </div>
+<div className="relative z-10">
+  <div className="bg-linear-to-r from-cyan-900/30 to-purple-900/30 rounded-3xl p-6 backdrop-blur-md border border-cyan-500/20">
+    <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-700 flex items-center justify-center">
+      {/* Dashboard Image Yahan Lagegi */}
+      <img 
+        src="/dashboard-image.png" 
+        alt="Dashboard Preview" 
+        className="w-full h-full object-cover" 
+      />
     </div>
   </div>
+</div>
 
-  {/* Floating Phone Mockup */}
-  <div className="absolute -bottom-10 -right-4 md:-right-8 w-48 md:w-56 transform rotate-6 shadow-2xl z-20">
-    {/* Changes made here:
-       - Adjusted right position (-right-8) to keep it tucked against the smaller dashboard.
-       - Reduced width (w-48 md:w-56) from previous (w-64 md:w-80).
-    */}
-    <div className="bg-linear-to-b from-slate-800 to-slate-950 rounded-[2.5rem] p-3 border border-slate-600">
-      <div className="aspect-[9/19] bg-black rounded-[2rem] overflow-hidden flex items-center justify-center">
-        <span className="text-[10px] text-cyan-300">Mobile View</span>
-      </div>
+{/* Floating Phone Mockup */}
+<div className="absolute -bottom-10 -right-4 md:-right-8 w-48 md:w-56 transform rotate-6 shadow-2xl z-20">
+  <div className="bg-linear-to-b from-slate-800 to-slate-950 rounded-[2.5rem] p-3 border border-slate-600">
+    <div className="aspect-[9/19] bg-black rounded-[2rem] overflow-hidden flex items-center justify-center">
+      {/* Mobile Image Yahan Lagegi */}
+      <img 
+        src="/mobile-image.png" 
+        alt="Mobile View" 
+        className="w-full h-full object-cover" 
+      />
     </div>
   </div>
+</div>
 </motion.div>
           </motion.div>
         </div>
@@ -556,15 +562,7 @@ function AfterFeatures() {
       </section>
 
       {/* Tech Stack */}
-      <section className="py-16">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <p className="text-gray-400 mb-8">Powered by</p>
-          <div className="flex flex-wrap justify-center gap-12 items-center opacity-80">
-            <span className="text-2xl font-bold">AWS</span>
-            <span className="text-2xl font-bold">Node.js</span>
-            <span className="text-2xl font-bold">WebRTC</span>
-          </div>
-        </div>
+      <section className="py-16">       
       </section>
 
       {/* Footer */}
